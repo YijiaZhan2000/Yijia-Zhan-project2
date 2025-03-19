@@ -1,0 +1,26 @@
+Writeup
+
+## What were some challenges you faced while making this app?
+- State Synchronization: Managing real-time updates between player/AI boards and ensuring turns were
+properly alternated.
+
+- Drag-and-Drop Logic: Implementing ship rotation and collision detection while maintaining grid alignment.
+
+- AI Behavior: Creating a non-repeating random targeting system that felt "fair" to play against.
+
+- Responsive Styling: Ensuring boards displayed correctly on mobile devices without visual clutter.
+
+##Given more time, what additional features, functional or design changes would you make?
+- Interactive tutorial for first-time users.
+- Design Changes: 3D visual effects for sinking ships.
+
+##What assumptions did you make while working on this assignment?
+- Players understand Battleship rules, so no in-depth tutorial was included.
+
+- AI simplicity (random targeting) was acceptable for project scope.
+
+- Users would prioritize functionality over advanced styling.
+
+- Local storage was optional for state persistence unless specified.
+## How long did this assignment take to complete?
+Total: ~30 hours
