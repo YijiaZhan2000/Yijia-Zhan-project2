@@ -1,24 +1,26 @@
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { GameProvider } from './context/GameContext';
+import Layout from './components/Layout';
+import HomePage from './components/HomePage';
+import GamePage from './components/GamePage';
+import RulesPage from './components/RulesPage';
+import HighScoresPage from './components/HighScoresPage';
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <GameProvider>
+      <Router>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/game/normal" element={<GamePage mode="normal" />} />
+            <Route path="/game/easy" element={<GamePage mode="easy" />} />
+            <Route path="/rules" element={<RulesPage />} />
+            <Route path="/highscores" element={<HighScoresPage />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </GameProvider>
   );
 }
 
