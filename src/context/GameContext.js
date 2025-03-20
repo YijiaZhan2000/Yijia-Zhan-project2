@@ -54,80 +54,63 @@ const canPlaceShip = (board, x, y, size, vertical) => {
 
 const placeShip = (board, x, y, size, vertical) => {
   const newBoard = board.map(row => [...row]);
-  
   for (let i = 0; i < size; i++) {
     const shipX = vertical ? x + i : x;
     const shipY = vertical ? y : y + i;
-    newBoard[shipX][shipY] = { 
-      ...newBoard[shipX][shipY], 
-      isShip: true 
-    };
+    newBoard[shipX][shipY] = { ...newBoard[shipX][shipY], isShip: true };
   }
-  
   return newBoard;
 };
 
 const generateShips = (board) => {
   const shipSizes = [5, 4, 3, 3, 2];
   let newBoard = JSON.parse(JSON.stringify(board));
-
   shipSizes.forEach((size) => {
     let placed = false;
     while (!placed) {
       const vertical = Math.random() > 0.5;
       const maxX = vertical ? 10 - size : 9;
       const maxY = vertical ? 9 : 10 - size;
-      
       const startX = Math.floor(Math.random() * (maxX + 1));
       const startY = Math.floor(Math.random() * (maxY + 1));
-
       if (canPlaceShip(newBoard, startX, startY, size, vertical)) {
         newBoard = placeShip(newBoard, startX, startY, size, vertical);
         placed = true;
       }
     }
   });
-
   return newBoard;
 };
 
 // Random AI attack
 const generateAIAttack = (playerBoard) => {
   const availableCells = [];
-  
   for (let x = 0; x < 10; x++) {
     for (let y = 0; y < 10; y++) {
-      if (!playerBoard[x][y].isRevealed) {
-        availableCells.push({ x, y });
-      }
+      if (!playerBoard[x][y].isRevealed) availableCells.push({ x, y });
     }
   }
-  
-  if (availableCells.length === 0) return null;
-  
-  const randomIndex = Math.floor(Math.random() * availableCells.length);
-  return availableCells[randomIndex];
+  return availableCells.length > 0 
+    ? availableCells[Math.floor(Math.random() * availableCells.length)]
+    : null;
 };
 
 // Check if all ships are sunk
 const checkAllShipsSunk = (board) => {
   for (let x = 0; x < 10; x++) {
     for (let y = 0; y < 10; y++) {
-      if (board[x][y].isShip && !board[x][y].isHit) {
-        return false;
-      }
+      if (board[x][y].isShip && !board[x][y].isHit) return false;
     }
   }
   return true;
 };
 
-// Updated reducer to include timer reset action
+// Reducer
 const reducer = (state, action) => {
   switch (action.type) {
     case 'INITIALIZE_GAME': {
       const playerBoard = generateShips(generateEmptyBoard());
       const aiBoard = generateShips(generateEmptyBoard());
-      
       return {
         ...state,
         playerBoard,
@@ -138,184 +121,90 @@ const reducer = (state, action) => {
         currentPlayer: 'player'
       };
     }
-    
     case 'PLAYER_ATTACK': {
       const { x, y } = action.payload;
       const newAiBoard = state.aiBoard.map(row => [...row]);
-      
-      // Skip if already revealed
-      if (newAiBoard[x][y].isRevealed) {
-        return state;
-      }
-      
-      // Mark as revealed and hit if it's a ship
-      newAiBoard[x][y] = {
-        ...newAiBoard[x][y],
-        isRevealed: true,
-        isHit: newAiBoard[x][y].isShip
-      };
-      
-      // Check if all AI ships are sunk
+      if (newAiBoard[x][y].isRevealed) return state;
+      newAiBoard[x][y] = { ...newAiBoard[x][y], isRevealed: true, isHit: newAiBoard[x][y].isShip };
       const allAiShipsSunk = checkAllShipsSunk(newAiBoard);
-      
       if (allAiShipsSunk) {
-        return {
-          ...state,
-          aiBoard: newAiBoard,
-          isGameOver: true,
-          winner: 'Player'
-        };
+        localStorage.removeItem("battleshipState");
+        return { ...state, aiBoard: newAiBoard, isGameOver: true, winner: 'Player' };
       }
-      
-      // In free play mode, player keeps the turn
-      if (state.gameMode === 'easy') {
-        return {
-          ...state,
-          aiBoard: newAiBoard,
-          currentPlayer: 'player'
-        };
-      }
-      
-      // In normal mode, switch to AI turn
       return {
         ...state,
         aiBoard: newAiBoard,
-        currentPlayer: 'AI'
+        currentPlayer: state.gameMode === 'easy' ? 'player' : 'AI'
       };
     }
-    
     case 'AI_ATTACK': {
-      // Skip if in free play mode or game is over
-      if (state.gameMode === 'easy' || state.isGameOver) {
-        return state;
-      }
-      
+      if (state.gameMode === 'easy' || state.isGameOver) return state;
       const attack = generateAIAttack(state.playerBoard);
-      
-      // No available cells to attack
-      if (!attack) {
-        return state;
-      }
-      
+      if (!attack) return state;
       const { x, y } = attack;
       const newPlayerBoard = state.playerBoard.map(row => [...row]);
-      
-      // Mark as revealed and hit if it's a ship
-      newPlayerBoard[x][y] = {
-        ...newPlayerBoard[x][y],
-        isRevealed: true,
-        isHit: newPlayerBoard[x][y].isShip
-      };
-      
-      // Check if all player ships are sunk
+      newPlayerBoard[x][y] = { ...newPlayerBoard[x][y], isRevealed: true, isHit: newPlayerBoard[x][y].isShip };
       const allPlayerShipsSunk = checkAllShipsSunk(newPlayerBoard);
-      
       if (allPlayerShipsSunk) {
-        return {
-          ...state,
-          playerBoard: newPlayerBoard,
-          isGameOver: true,
-          winner: 'AI'
-        };
+        localStorage.removeItem("battleshipState");
+        return { ...state, playerBoard: newPlayerBoard, isGameOver: true, winner: 'AI' };
       }
-      
-      // Switch back to player turn
-      return {
-        ...state,
-        playerBoard: newPlayerBoard,
-        currentPlayer: 'player'
-      };
+      return { ...state, playerBoard: newPlayerBoard, currentPlayer: 'player' };
     }
-    
     case 'RESET_GAME': {
+      localStorage.removeItem("battleshipState");
       const playerBoard = generateShips(generateEmptyBoard());
       const aiBoard = generateShips(generateEmptyBoard());
-      
-      return {
-        ...initialState,
-        playerBoard,
-        aiBoard,
-        gameMode: state.gameMode
-      };
+      return { ...initialState, playerBoard, aiBoard, gameMode: state.gameMode };
     }
-    
     default:
       return state;
   }
 };
 
-// Provider component
+// Provider Component
 export const GameProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, initialState, () => {
+    const savedState = localStorage.getItem("battleshipState");
+    return savedState ? JSON.parse(savedState) : initialState;
+  });
+
   const [timer, setTimer] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  
-  // Reset timer function
+
+  // Save state to localStorage
+  useEffect(() => {
+    if (!state.isGameOver) localStorage.setItem("battleshipState", JSON.stringify(state));
+  }, [state]);
+
+  // Timer logic
   const resetTimer = useCallback(() => {
     setTimer(0);
     setIsTimerRunning(true);
   }, []);
-  
-  // Custom dispatch function that also manages timer
+
   const wrappedDispatch = useCallback((action) => {
-    // Handle timer reset logic
-    if (action.type === 'RESET_GAME' || action.type === 'INITIALIZE_GAME') {
-      resetTimer();
-    }
-    
-    // Forward the action to the actual dispatch
+    if (action.type === 'RESET_GAME' || action.type === 'INITIALIZE_GAME') resetTimer();
     dispatch(action);
   }, [resetTimer]);
 
-  // Initialize game when first loaded
   useEffect(() => {
-    wrappedDispatch({ 
-      type: 'INITIALIZE_GAME', 
-      payload: { mode: 'normal' } 
-    });
-  }, [wrappedDispatch]);
-
-  // Update timer running state based on game state
-  useEffect(() => {
-    if (state.isGameOver) {
-      setIsTimerRunning(false);
-    } else {
-      setIsTimerRunning(true);
-    }
+    setIsTimerRunning(!state.isGameOver);
   }, [state.isGameOver]);
 
-  // Timer logic - completely separated from the reducer
   useEffect(() => {
-    let intervalId = null;
-    
+    let intervalId;
     if (isTimerRunning && !state.isGameOver) {
-      intervalId = setInterval(() => {
-        setTimer(prevTimer => prevTimer + 1);
-      }, 1000);
+      intervalId = setInterval(() => setTimer(t => t + 1), 1000);
     }
-    
-    // Cleanup function - will be called when component unmounts
-    // or when dependencies change
-    return () => {
-      if (intervalId !== null) {
-        clearInterval(intervalId);
-      }
-    };
+    return () => intervalId && clearInterval(intervalId);
   }, [isTimerRunning, state.isGameOver]);
 
   return (
-    <GameContext.Provider value={{ 
-      state, 
-      dispatch: wrappedDispatch, 
-      timer,
-      resetTimer 
-    }}>
+    <GameContext.Provider value={{ state, dispatch: wrappedDispatch, timer, resetTimer }}>
       {children}
     </GameContext.Provider>
   );
 };
 
-// Custom hook
-export const useGameContext = () => {
-  return useContext(GameContext);
-};
+export const useGameContext = () => useContext(GameContext);

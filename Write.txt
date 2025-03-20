@@ -23,4 +23,5 @@ properly alternated.
 
 - Local storage was optional for state persistence unless specified.
 ## How long did this assignment take to complete?
+
 Total: ~30 hours
